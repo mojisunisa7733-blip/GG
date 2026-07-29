@@ -1,0 +1,102 @@
+-- โหลด Rayfield UI Library
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- สร้างหน้าต่างหลักของ UI
+local Window = Rayfield:CreateWindow({
+   Name = "ระบบแกล้งเพื่อนสุดป่วน",
+   LoadingTitle = "กำลังโหลดระบบ...",
+   LoadingSubtitle = "โดย AI Collaborator",
+   ConfigurationSaving = {
+      Enabled = false,
+   },
+   KeySystem = false, -- ปิดระบบคีย์เพื่อให้ใช้งานง่าย
+})
+
+-- สร้าง Tab หน้าหลัก
+local MainTab = Window:CreateTab("หน้าแรก", 4483362458)
+
+-- สร้าง Section สำหรับฟังก์ชันแกล้ง
+local MainSection = MainTab:CreateSection("ฟังก์ชันแกล้งคน")
+
+-- ตัวแปรสำหรับควบคุมสถานะการทำงานของฟังก์ชัน
+local isTrolling = false
+
+-- ฟังก์ชันสำหรับดีดผู้เล่นอื่น (Fling)
+local function startFling()
+    task.spawn(function()
+        local player = game.Players.LocalPlayer
+        
+        while isTrolling do
+            task.wait()
+            pcall(function()
+                local character = player.Character
+                local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
+                
+                if humanoidRootPart then
+                    -- วนลูปหาผู้เล่นทุกคนในแมพ
+                    for _, targetPlayer in ipairs(game.Players:GetPlayers()) do
+                        if targetPlayer ~= player and targetPlayer.Character then
+                            local targetRootPart = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+                            local targetHumanoid = targetPlayer.Character:FindFirstChild("Humanoid")
+                            
+                            -- เช็คว่าเป้าหมายยังมีชีวิตอยู่และมี RootPart
+                            if targetRootPart and targetHumanoid and targetHumanoid.Health > 0 then
+                                if not isTrolling then break end
+                                
+                                -- วาปไปตำแหน่งเป้าหมายชั่วพริบตาเพื่อดีด
+                                local oldPos = humanoidRootPart.CFrame
+                                humanoidRootPart.CFrame = targetRootPart.CFrame
+                                
+                                -- เพิ่มความเร็วหมุนรอบตัวเพื่อให้เกิดแรงเหวี่ยง (Fling)
+                                local bav = Instance.path and nil -- ป้องกัน error พื้นฐาน
+                                local bodyAngularVelocity = Instance.new("BodyAngularVelocity")
+                                bodyAngularVelocity.AngularVelocity = Vector3.new(99999, 99999, 99999)
+                                bodyAngularVelocity.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+                                bodyAngularVelocity.Parent = humanoidRootPart
+                                
+                                task.wait(0.1) -- หน่วงเวลาสั้นๆ ให้เกิดแรงกระแทก
+                                bodyAngularVelocity:Destroy()
+                                
+                                -- กลับมาที่เดิมหรือวนไปคนถัดไป
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end)
+end
+
+-- สร้างปุ่มเปิด/ปิด (Toggle) ใน Rayfield UI
+MainTab:CreateToggle({
+   Name = "วาปดีดคนทั้งแมพ (Troll Fling)",
+   CurrentValue = false,
+   Flag = "TrollToggle",
+   Callback = function(Value)
+      isTrolling = Value
+      if Value then
+         Rayfield:Notify({
+            Title = "เปิดใช้งานสำเร็จ",
+            Content = "เริ่มปฏิบัติการดีดผู้เล่นทั้งแมพแล้ว!",
+            Duration = 3,
+            Image = 4483362458,
+         })
+         startFling()
+      else
+         Rayfield:Notify({
+            Title = "ปิดการใช้งาน",
+            Content = "หยุดการทำงานแล้ว",
+            Duration = 3,
+            Image = 4483362458,
+         })
+      end
+   end,
+})
+
+-- แจ้งเตือนเมื่อโหลดสคริปต์เสร็จ
+Rayfield:Notify({
+   Title = "System Loaded",
+   Content = "UI พร้อมใช้งานแล้วครับ!",
+   Duration = 5,
+   Image = 4483362458,
+})
